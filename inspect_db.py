@@ -5,7 +5,12 @@ connection = sqlite3.connect("chatbot.db")
 cursor = connection.cursor()
 
 cursor.execute("""
-    SELECT id, role, content
+    SELECT id, title
+    FROM conversations
+    ORDER BY id
+""")
+cursor.execute("""
+    SELECT id, conversation_id, role, content
     FROM messages
     ORDER BY id
 """)
