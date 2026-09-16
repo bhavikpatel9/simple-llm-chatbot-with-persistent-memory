@@ -60,7 +60,7 @@ def save_message(conversation_id, role, content):
     connection.commit()
     connection.close()
 
-def get_messages(conversation_id):
+def get_messages(conversation_id, limit=10):
     connection = sqlite3.connect("chatbot.db")
     cursor = connection.cursor()
 
@@ -68,14 +68,17 @@ def get_messages(conversation_id):
         SELECT role, content
         FROM messages
         WHERE conversation_id = ?
-        ORDER BY id
-    """, (conversation_id,))
+        ORDER BY id DESC
+        LIMIT ?
+    """, (conversation_id, limit))
 
     messages = cursor.fetchall()
 
     connection.close()
 
-    return messages 
+    messages.reverse()
+
+    return messages
 
     
 def get_conversations():
