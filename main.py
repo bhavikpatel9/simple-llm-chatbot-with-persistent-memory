@@ -4,6 +4,7 @@ import os
 import json
 
 from database import save_message, get_messages, create_conversation, create_database, get_conversations
+from context_manager import build_context
 
 
 load_dotenv()
@@ -51,13 +52,17 @@ while True:
 
     stored_messages = get_messages(conversation_id)
 
-    conversation = []
+    conversation = build_context(
+        client=client,
+        model="gemini-3.8-flash",
+        messages=stored_messages,
+        max_input_tokens=100
+    )
 
-    for role, content in stored_messages:
-        conversation.append({
-            "role": role,
-            "content": content
-        })
+    print("\nSelected context:")
+
+    for message in conversation:
+        print(message)
 
     json_string = json.dumps(conversation)
     interaction = client.interactions.create(
@@ -65,5 +70,6 @@ while True:
         input=json_string
     )
     print("AI:", interaction.output_text)
+    print("usage:", interaction.usage)
 
     save_message(conversation_id, 'assistant', interaction.output_text)
