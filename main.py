@@ -5,6 +5,7 @@ import json
 
 from database import save_message, get_messages, create_conversation, create_database, get_conversations
 from context_manager import build_context
+from summary_manager import summarize_eligible_messages
 
 
 load_dotenv()
@@ -42,6 +43,8 @@ else:
 print(f"\nConversation selected: {conversation_id}")
 print("Chatbot started. Type 'exit' to quit.\n")
 
+model = "gemini-3.8-flash"
+
 while True:
     user_input = input("You: ")
 
@@ -52,24 +55,28 @@ while True:
 
     stored_messages = get_messages(conversation_id)
 
-    conversation = build_context(
-        client=client,
-        model="gemini-3.8-flash",
-        messages=stored_messages,
-        max_input_tokens=100
+    context = build_context(
+        conversation_id,
+        limit=10,   
     )
+    print("context:", context)
 
-    print("\nSelected context:")
-
-    for message in conversation:
-        print(message)
-
-    json_string = json.dumps(conversation)
+    json_string = json.dumps(context)
     interaction = client.interactions.create(
-        model="gemini-3.8-flash",
+        model=model,
         input=json_string
     )
     print("AI:", interaction.output_text)
     print("usage:", interaction.usage)
 
     save_message(conversation_id, 'assistant', interaction.output_text)
+
+    try:
+        summarize_eligible_messages(
+            client,
+            model,
+            conversation_id,
+        )
+    except Exception as e:
+        print("Summarization failed:", e)
+        print("The chat can continue; summarization can retry later.")   
