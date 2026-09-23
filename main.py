@@ -3,7 +3,9 @@ from dotenv import load_dotenv
 import os
 import json
 
-from database import save_message, get_messages
+from database import save_message, get_messages, create_conversation, create_database, get_conversations
+from context_manager import build_context
+from summary_manager import summarize_eligible_messages
 
 
 load_dotenv()
@@ -11,6 +13,37 @@ load_dotenv()
 api_key=os.getenv("GEMINI_API_KEY")
 
 client = genai.Client(api_key=api_key)
+
+create_database()
+
+# Show existing conversations
+conversations = get_conversations()
+
+print("\nYour conversations:")
+
+for conversation_id, title in conversations:
+    print(f"{conversation_id}. {title}")
+
+print("0. Start a new conversation")
+
+choice = input("\nChoose a conversation: ")
+
+
+if choice == "0":
+
+    title = input("Enter conversation title: ")
+
+    conversation_id = create_conversation(title)
+
+else:
+
+    conversation_id = int(choice)
+
+
+print(f"\nConversation selected: {conversation_id}")
+print("Chatbot started. Type 'exit' to quit.\n")
+
+model = "gemini-3.8-flash"
 
 while True:
     user_input = input("You: ")
@@ -20,21 +53,27 @@ while True:
 
     save_message("user", user_input)
 
-    stored_messages = get_messages()
+    context = build_context(
+        conversation_id,
+        limit=10,   
+    )
+    print("context:", context)
 
-    conversation = []
-
-    for role, content in stored_messages:
-        conversation.append({
-            "role": role,
-            "content": content
-        })
-
-    json_string = json.dumps(conversation)
+    json_string = json.dumps(context)
     interaction = client.interactions.create(
-        model="gemini-3.8-flash",
+        model=model,
         input=json_string
     )
     print("AI:", interaction.output_text)
 
-    save_message('assistant', interaction.output_text)
+    save_message(conversation_id, 'assistant', interaction.output_text)
+
+    try:
+        summarize_eligible_messages(
+            client,
+            model,
+            conversation_id,
+        )
+    except Exception as e:
+        print("Summarization failed:", e)
+        print("The chat can continue; summarization can retry later.")   
