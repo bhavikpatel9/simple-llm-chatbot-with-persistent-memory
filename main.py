@@ -51,7 +51,9 @@ while True:
     if user_input.lower() == "exit":
         break;
 
-    save_message("user", user_input)
+    save_message(conversation_id, "user", user_input)
+
+    stored_messages = get_messages(conversation_id)
 
     context = build_context(
         conversation_id,
@@ -65,6 +67,7 @@ while True:
         input=json_string
     )
     print("AI:", interaction.output_text)
+    print("usage:", interaction.usage)
 
     save_message(conversation_id, 'assistant', interaction.output_text)
 

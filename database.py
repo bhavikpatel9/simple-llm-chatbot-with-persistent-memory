@@ -1,50 +1,76 @@
 import sqlite3
 
-# connection = sqlite3.connect("chatbot.db")
 
-# cursor = connection.cursor()
-
-# cursor.execute("""
-#     CREATE TABLE IF NOT EXISTS messages (
-#         id INTEGER PRIMARY KEY AUTOINCREMENT,
-#         role TEXT NOT NULL,
-#         content TEXT NOT NULL
-#     )
-# """)
-
-# connection.commit()
-# connection.close()
-
-def save_message(role, content):
-
+def create_database():
     connection = sqlite3.connect("chatbot.db")
+    cursor = connection.cursor()
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id INTEGER NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+
+            FOREIGN KEY (conversation_id)
+            REFERENCES conversations(id)
+        )
+    """)
+
+    connection.commit()
+    connection.close()
+
+# create_database()
+
+def create_conversation(title):
+    connection = sqlite3.connect("chatbot.db")
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        INSERT INTO conversations (title)
+        VALUES (?)
+    """, (title,))
+
+    conversation_id = cursor.lastrowid
+
+    connection.commit()
+    connection.close()
+
+    return conversation_id   
+
+def save_message(conversation_id, role, content):
+    connection = sqlite3.connect("chatbot.db")
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        INSERT INTO messages (role, content)
-        VALUES (?, ?)
+        INSERT INTO messages (conversation_id, role, content)
+        VALUES (?, ?, ?)
         """,
-        (role, content)
+        (conversation_id, role, content)
     )
 
     connection.commit()
     connection.close()
 
-def get_messages():
-
+def get_messages(conversation_id, limit=10):
     connection = sqlite3.connect("chatbot.db")
-
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
+    cursor.execute("""
         SELECT role, content
         FROM messages
-        ORDER BY id
-        """
-    )
+        WHERE conversation_id = ?
+        ORDER BY id DESC
+        LIMIT ?
+    """, (conversation_id, limit))
 
     messages = cursor.fetchall()
 
